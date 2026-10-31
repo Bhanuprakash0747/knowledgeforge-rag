@@ -1,205 +1,333 @@
 # Enterprise RAG Platform
 
-A production-oriented Retrieval-Augmented Generation (RAG) platform that answers questions from enterprise documents using semantic search, keyword retrieval, and a locally hosted Large Language Model (LLM).
+An end-to-end **Retrieval-Augmented Generation (RAG)** platform that enables users to upload PDF and TXT documents and ask questions based on their contents. The system combines semantic search, BM25 keyword retrieval, FAISS vector search and locally hosted LLMs to generate context-aware answers.
 
 ## Overview
 
-Enterprise documents often contain useful information spread across multiple files. This project retrieves relevant document passages and uses them as context for generating grounded answers.
+Large Language Models (LLMs) can generate incorrect or outdated information when they lack access to domain-specific knowledge.
 
-The system is designed to reduce unsupported answers by instructing the LLM to use only the supplied context and acknowledge when the documents do not contain sufficient information.
+This project addresses that limitation by implementing a document-based RAG architecture that retrieves relevant information from user-provided documents and uses that context to generate answers.
+
+The platform supports dynamic document ingestion, automatic indexing and question answering through REST APIs.
+
+## Key Features
+
+- **Document Ingestion:** Upload PDF and TXT documents through FastAPI.
+- **Text Extraction:** Extract text from PDF and TXT files.
+- **Document Chunking:** Split extracted content into smaller, manageable chunks.
+- **Semantic Embeddings:** Generate vector representations using Sentence Transformers.
+- **Vector Search:** Store and retrieve document embeddings using FAISS.
+- **Keyword Search:** Retrieve relevant information using BM25.
+- **Hybrid Retrieval:** Combine semantic and keyword-based retrieval.
+- **Context Building:** Prepare retrieved document chunks as context for the LLM.
+- **LLM Integration:** Generate context-aware responses using Ollama.
+- **Source Attribution:** Include retrieved source information in responses.
+- **REST API:** Expose document upload, health-check and question-answering endpoints.
 
 ## Architecture
-1. **Document ingestion** - Load source documents from `data/raw`.
-2. **Chunking** - Split documents into smaller passages for retrieval.
-3. **Embeddings** - Generate semantic embeddings using Sentence Transformers.
-4. **Vector indexing** - Store embeddings and chunk metadata; use FAISS for similarity search.
-5. **Hybrid retrieval** - Combine semantic search with BM25 using Reciprocal Rank Fusion (RRF).
-6. **Context construction** - Assemble retrieved passages for the LLM.
-7. **Answer generation** - Use Ollama with the local `llama3.2:3b` model.
-8. **API delivery** - Expose question answering through FastAPI.
+
+```text
+                 User
+                   |
+                   v
+              FastAPI
+                   |
+          +--------+--------+
+          |                 |
+          v                 v
+     Upload API          Ask API
+          |                 |
+          v                 v
+   Document Loader     User Question
+          |                 |
+          v                 v
+    Text Extraction    Query Embedding
+          |                 |
+          v                 v
+   Document Chunking   Hybrid Retrieval
+          |             /          \
+          v            v            v
+    Embeddings      FAISS         BM25
+          |            \            /
+          v             \          /
+    Vector Storage       Retrieved Chunks
+          |                    |
+          v                    v
+     Index Update         Context Builder
+                               |
+                               v
+                         Prompt Template
+                               |
+                               v
+                         Ollama LLM
+                               |
+                               v
+                         Generated Answer
+                               |
+                               v
+                             User
+```
 
 ## Technology Stack
 
-- Python 3.12
-- FastAPI and Uvicorn
-- Sentence Transformers
-- FAISS
-- BM25 keyword retrieval
-- Reciprocal Rank Fusion
-- Ollama and Llama 3.2
-- Pydantic
-- Python unittest
+| Category | Technologies |
+|---|---|
+| Programming Language | Python |
+| Backend Framework | FastAPI |
+| Embedding Model | Sentence Transformers |
+| Embedding Architecture | all-MiniLM-L6-v2 |
+| Vector Database / Search | FAISS |
+| Keyword Retrieval | BM25 |
+| Numerical Computing | NumPy |
+| LLM Runtime | Ollama |
+| LLM Model | Llama 3.2 (3B) |
+| Document Processing | PyPDF |
+| API Testing | Swagger UI |
+| Testing | Python unittest |
 
 ## Project Structure
 
 ```text
 enterprise-rag-platform/
-|-- app/
-|   |-- main.py
-|   `-- rag/
-|       |-- bm25_retriever.py
-|       |-- chunker.py
-|       |-- context_builder.py
-|       |-- document_loader.py
-|       |-- embedding_service.py
-|       |-- faiss_vector_store.py
-|       |-- generation_service.py
-|       |-- hybrid_retriever.py
-|       |-- models.py
-|       |-- prompt_template.py
-|       |-- rag_pipeline.py
-|       |-- retriever.py
-|       `-- vector_store.py
-|-- data/
-|   |-- raw/
-|   `-- index/
-|-- scripts/
-|-- tests/
-|-- .env.example
-|-- .gitignore
-|-- requirements.txt
-`-- README.md
+│
+├── app/
+│   ├── main.py
+│   │
+│   └── rag/
+│       ├── bm25_retriever.py
+│       ├── chunker.py
+│       ├── context_builder.py
+│       ├── document_loader.py
+│       ├── embedding_service.py
+│       ├── faiss_vector_store.py
+│       ├── generation_service.py
+│       ├── hybrid_retriever.py
+│       ├── indexing_service.py
+│       ├── models.py
+│       ├── prompt_template.py
+│       ├── rag_pipeline.py
+│       ├── retriever.py
+│       └── vector_store.py
+│
+├── data/
+│   ├── evaluation/
+│   ├── index/
+│   ├── research_papers/
+│   └── uploads/
+│
+├── scripts/
+│   ├── benchmark_faiss.py
+│   ├── download_research_papers.py
+│   ├── evaluate_retrieval.py
+│   ├── index_documents.py
+│   └── inspect_chunks.py
+│
+├── tests/
+│   ├── test_bm25.py
+│   ├── test_generation_service.py
+│   ├── test_hybrid.py
+│   └── test_rag_pipeline_unit.py
+│
+├── .env.example
+├── .gitignore
+├── pyproject.toml
+├── requirements.txt
+└── README.md
 ```
 
-## Prerequisites
+## How It Works
+
+### 1. Document Ingestion
+
+Users upload PDF or TXT documents through the FastAPI document upload endpoint.
+
+The document loader extracts the text and preserves relevant document metadata, including source information and PDF page numbers.
+
+### 2. Text Chunking
+
+Extracted content is divided into smaller chunks to improve retrieval relevance and provide manageable context to the language model.
+
+### 3. Embedding Generation
+
+The Sentence Transformers model `all-MiniLM-L6-v2` converts document chunks into 384-dimensional vector embeddings.
+
+### 4. Indexing and Storage
+
+The generated embeddings and associated chunk metadata are stored using FAISS and a JSON-based metadata store.
+
+### 5. Hybrid Retrieval
+
+When a user submits a question, the system uses:
+
+- **Semantic Retrieval:** Finds contextually similar document chunks using vector embeddings and FAISS.
+- **Keyword Retrieval:** Uses BM25 to identify relevant chunks based on matching terms.
+- **Hybrid Retrieval:** Combines both retrieval approaches using Reciprocal Rank Fusion (RRF).
+
+### 6. Context Construction
+
+Retrieved chunks are assembled into a context containing relevant source information.
+
+### 7. Response Generation
+
+The system constructs a prompt using the user's question and retrieved context. Ollama runs the locally hosted Llama 3.2 model to generate the final response.
+
+## Installation and Setup
+
+### Prerequisites
 
 - Python 3.12
-- Ollama installed locally
-- A compatible local Ollama model
-- Internet access for the initial Python package and embedding-model downloads
+- Git
+- Ollama
+- Llama 3.2 (3B) model
 
-No paid LLM API key is required when using local Ollama.
+### 1. Clone the Repository
 
-## Setup
+```bash
+git clone https://github.com/YOUR_USERNAME/enterprise-rag-platform.git
 
-### 1. Create and activate a virtual environment
+cd enterprise-rag-platform
+```
+
+### 2. Create a Virtual Environment
+
+Windows:
 
 ```powershell
 py -3.12 -m venv .venv
-.\.venv\Scripts\Activate.ps1
+
+.venv\Scripts\activate
 ```
 
-### 2. Install dependencies
+### 3. Install Dependencies
 
-```powershell
-python -m pip install -r requirements.txt
+```bash
+python -m pip install --upgrade pip
+
+pip install -r requirements.txt
 ```
 
-### 3. Configure environment variables
+### 4. Configure Environment Variables
 
-Copy `.env.example` to `.env` if you have not created `.env` already.
+Create a `.env` file using `.env.example` as a reference.
 
-Configure:
+Configure the Ollama settings:
 
-```dotenv
-OLLAMA_BASE_URL=http://localhost:11434
+```env
 OLLAMA_MODEL=llama3.2:3b
-RAG_TOP_K=3
+OLLAMA_BASE_URL=http://localhost:11434
 ```
 
-Keep `.env` out of version control.
+### 5. Install and Start Ollama
 
-### 4. Start Ollama
+Download Ollama from:
 
-Ensure Ollama is installed and running. Download the model if necessary:
+https://ollama.com/
 
-```powershell
+Pull the required model:
+
+```bash
 ollama pull llama3.2:3b
 ```
 
-### 5. Add documents
+Ensure Ollama is running locally.
 
-Place supported source documents in `data/raw`.
+### 6. Start the FastAPI Application
 
-### 6. Build the retrieval index
-
-Run from the project root:
-
-```powershell
-python -m scripts.index_documents
+```bash
+uvicorn app.main:app --reload
 ```
 
-This creates the persisted vector metadata and FAISS index under `data/index`.
+The application will be available at:
 
-### 7. Start the API
-
-```powershell
-python -m uvicorn app.main:app --host 127.0.0.1 --port 8000
+```text
+http://127.0.0.1:8000
 ```
 
-## API Usage
+Swagger API documentation:
 
-### Health check
-
-`GET /health`
-
-Example response:
-
-```json
-{
-  "status": "healthy"
-}
+```text
+http://127.0.0.1:8000/docs
 ```
 
-### Ask a question
+## API Endpoints
 
-`POST /ask`
+| Method | Endpoint | Description |
+|---|---|---|
+| GET | `/health` | Check application health |
+| POST | `/documents/upload` | Upload and index PDF/TXT documents |
+| POST | `/ask` | Ask questions using indexed documents |
 
-Example request:
+Use Swagger UI (`/docs`) to interact with and test the API endpoints.
 
-```json
-{
-  "question": "What authentication does Catalog V2 use?",
-  "top_k": 3
-}
+## Running Tests
+
+The project uses Python's built-in `unittest` framework.
+
+Run the complete test suite:
+
+```bash
+python -m unittest discover -s tests -p "test_*.py" -v
 ```
 
-The response includes the question, generated answer, source filenames, and retrieved evidence passages.
+The test suite covers:
 
-Open the interactive API documentation at:
+- BM25 retrieval.
+- Generation service.
+- Hybrid retrieval.
+- RAG pipeline.
+- Input validation and fallback handling.
 
-`http://127.0.0.1:8000/docs`
+**Current test status:** 17 tests passing.
 
-## Retrieval Evaluation
+## Evaluation and Benchmarking
 
-An earlier retrieval evaluation on six questions produced these results:
+The project includes utility scripts for retrieval evaluation and FAISS benchmarking.
 
-| Metric | Result |
-|---|---:|
-| Recall@1 | 83.33% |
-| Recall@3 | 100% |
-| Recall@5 | 100% |
+Run retrieval evaluation:
 
-These are results from the existing evaluation set, not a guarantee of performance on unseen documents or questions.
+```bash
+python -m scripts.evaluate_retrieval
+```
 
-## Key Features
+Run FAISS benchmarking:
 
-- Semantic retrieval with vector embeddings
-- Keyword retrieval using BM25
-- Hybrid ranking using Reciprocal Rank Fusion
-- Persistent FAISS indexing
-- Locally hosted LLM generation
-- Source-aware answers and retrieved evidence
-- FastAPI endpoints for integration
-- Environment-based configuration
-- Retrieval evaluation scripts
+```bash
+python -m scripts.benchmark_faiss
+```
 
-## Limitations
+Inspect indexed document chunks:
 
-- Answer quality depends on document quality and retrieval relevance.
-- The local LLM requires sufficient system resources and may have higher latency on CPU-only machines.
-- Retrieval metrics depend on the evaluation dataset.
-- The system should be evaluated for security, access control, reliability, and performance before production deployment.
+```bash
+python -m scripts.inspect_chunks
+```
 
-## Future Improvements
+## Design Considerations
 
-- Automated API integration tests
-- Retrieval and answer-quality evaluation
-- Authentication and authorization
-- Structured logging and monitoring
-- Document-level access control
-- Performance benchmarking and deployment hardening
+- Local embedding generation reduces dependency on paid embedding APIs.
+- Ollama enables local LLM inference.
+- Hybrid retrieval combines semantic relevance with keyword matching.
+- Document metadata supports source attribution.
+- Modular architecture separates ingestion, retrieval, context construction and generation.
+- FastAPI provides an interface for integrating the RAG pipeline with other applications.
 
-## License
+## Future Scope
 
-Add an appropriate license before distributing the project publicly.
+- Improved retrieval evaluation and relevance optimization.
+- Advanced document processing and metadata filtering.
+- Authentication and access control.
+- Conversation history and multi-turn question answering.
+- Containerization and cloud deployment.
+- Monitoring, logging and performance optimization.
+
+## Author
+
+**Bhanu Prakash**
+
+M.Tech – Artificial Intelligence and Machine Learning  
+BITS Pilani (WILP)
+
+Bachelor of Engineering – Electronics and Communication Engineering
+
+---
+
+**If you find this project useful, consider giving the repository a star!**

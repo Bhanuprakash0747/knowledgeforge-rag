@@ -8,7 +8,7 @@ from app.rag.vector_store import InMemoryVectorStore
 from app.rag.faiss_vector_store import FaissVectorStore
 
 
-DATA_DIRECTORY = "data/raw"
+DATA_DIRECTORY = "data/research_papers"
 INDEX_DIRECTORY = Path("data/index")
 
 VECTOR_STORE_PATH = INDEX_DIRECTORY / "vector_store.json"

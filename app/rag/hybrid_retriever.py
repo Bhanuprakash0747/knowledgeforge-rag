@@ -34,7 +34,7 @@ class HybridRetriever:
         if top_k <= 0:
             raise ValueError("top_k must be greater than zero")
 
-        candidate_k = len(self.bm25.chunks)
+        candidate_k = min(20, len(self.bm25.chunks))
 
         dense_results = self.semantic.retrieve(
             query, top_k=candidate_k
@@ -47,7 +47,7 @@ class HybridRetriever:
         chunks_by_key = {}
 
         def identity(chunk):
-            return (chunk.source, chunk.chunk_index)
+            return chunk.chunk_id
 
         def add_ranked_results(results):
             seen = set()

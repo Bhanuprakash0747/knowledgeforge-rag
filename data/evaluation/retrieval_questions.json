@@ -1,32 +1,23 @@
+
 [
   {
-    "question": "What authentication does Catalog V2 use?",
-    "expected_document": "catalog_v2_migration",
-    "expected_chunk_index": 0
+    "question": "What is the Transformer architecture, and how does attention help it process sequences?",
+    "expected_document": "attention_is_all_you_need"
   },
   {
-    "question": "How long are Catalog V2 access tokens valid?",
-    "expected_document": "catalog_v2_migration",
-    "expected_chunk_index": 1
+    "question": "What is retrieval-augmented generation, and why is retrieval used with a language model?",
+    "expected_document": "retrieval_augmented_generation"
   },
   {
-    "question": "What should be done when CAT-V2-ERROR-4097 occurs?",
-    "expected_document": "catalog_v2_migration",
-    "expected_chunk_index": 2
+    "question": "What are the main components of a retrieval-augmented generation system?",
+    "expected_document": "rag_survey"
   },
   {
-    "question": "What does HTTP 429 mean?",
-    "expected_document": "catalog_v2_troubleshooting",
-    "expected_chunk_index": 0
+    "question": "How does a retriever select relevant passages for a query?",
+    "expected_document": "rag_survey"
   },
   {
-    "question": "What is the recommended retry strategy for rate limiting?",
-    "expected_document": "catalog_v2_troubleshooting",
-    "expected_chunk_index": 1
-  },
-  {
-    "question": "What was introduced in Catalog V2.2?",
-    "expected_document": "catalog_v2_release_notes",
-    "expected_chunk_index": 1
+    "question": "What are the benefits and limitations of retrieval-augmented generation?",
+    "expected_document": "rag_survey"
   }
 ]

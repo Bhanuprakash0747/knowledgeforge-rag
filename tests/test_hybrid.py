@@ -1,31 +1,40 @@
-from app.rag.document_loader import load_text_documents
-from app.rag.chunker import chunk_document
+import unittest
+
 from app.rag.hybrid_retriever import HybridRetriever
 
-documents = load_text_documents("data/raw")
 
-chunks = []
-for document in documents:
-    chunks.extend(chunk_document(document))
+class TestHybridRetriever(unittest.TestCase):
 
-retriever = HybridRetriever(chunks)
+    @classmethod
+    def setUpClass(cls):
+        # Load the existing persisted research-paper index once.
+        cls.retriever = HybridRetriever(
+            vector_store_path="data/index/vector_store.json",
+            faiss_index_path="data/index/faiss.index",
+        )
 
-questions = [
-    "How do I fix CAT-V2-ERROR-4097?",
-    "What authentication does Catalog V2 use?",
-    "What should I do when the API rate limit is exceeded?"
-]
+    def test_retrieves_relevant_research_chunks(self):
+        question = "What is retrieval-augmented generation (RAG)?"
 
-for question in questions:
-    print("\n" + "=" * 70)
-    print("QUESTION:", question)
+        results = self.retriever.retrieve(question, top_k=3)
 
-    results = retriever.retrieve(question, top_k=3)
+        self.assertTrue(results, "Expected relevant chunks from the research papers")
 
-    for rank, (chunk, score) in enumerate(results, start=1):
-        print("-" * 60)
-        print("Rank:", rank)
-        print("Source:", chunk.source)
-        print("Chunk:", chunk.chunk_index)
-        print("RRF score:", round(score, 5))
-        print("Content:", chunk.content)
+        for chunk, score in results:
+            self.assertTrue(chunk.content.strip())
+            self.assertIsInstance(score, float)
+
+    def test_empty_query_is_rejected(self):
+        with self.assertRaises(ValueError):
+            self.retriever.retrieve("   ")
+
+    def test_non_positive_top_k_is_rejected(self):
+        with self.assertRaises(ValueError):
+            self.retriever.retrieve(
+                "What is attention in Transformers?",
+                top_k=0,
+            )
+
+
+if __name__ == "__main__":
+    unittest.main()

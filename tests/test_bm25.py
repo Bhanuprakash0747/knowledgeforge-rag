@@ -1,32 +1,61 @@
-from app.rag.document_loader import load_text_documents
-from app.rag.chunker import chunk_document
+
+import unittest
+
 from app.rag.bm25_retriever import BM25Retriever
+from app.rag.models import Chunk
 
-# 1. Load documents
-documents = load_text_documents("data/raw")
 
-# 2. Create chunks
-chunks = []
+class TestBM25Retriever(unittest.TestCase):
+    def setUp(self):
+        self.chunks = [
+            Chunk(
+                chunk_id="chunk-1",
+                document_id="doc-1",
+                content=(
+                    "Retrieval augmented generation uses a retriever "
+                    "to find relevant passages for a language model."
+                ),
+                source="rag_survey.pdf",
+                chunk_index=0,
+                page_number=1,
+            ),
+            Chunk(
+                chunk_id="chunk-2",
+                document_id="doc-2",
+                content=(
+                    "The Transformer architecture uses self-attention "
+                    "to process sequences."
+                ),
+                source="attention_is_all_you_need.pdf",
+                chunk_index=0,
+                page_number=1,
+            ),
+        ]
+        self.retriever = BM25Retriever(self.chunks)
 
-for document in documents:
-    chunks.extend(chunk_document(document))
+    def test_retrieves_relevant_chunks(self):
+        results = self.retriever.retrieve(
+            "How does retrieval augmented generation find passages?",
+            top_k=2,
+        )
 
-print("Documents loaded:", len(documents))
-print("Chunks created:", len(chunks))
+        self.assertTrue(results)
+        self.assertEqual(
+            results[0][0].source,
+            "rag_survey.pdf",
+        )
 
-# 3. Initialize BM25
-retriever = BM25Retriever(chunks)
+    def test_empty_query_is_rejected(self):
+        with self.assertRaises(ValueError):
+            self.retriever.retrieve("", top_k=2)
 
-# 4. Search
-question = "How do I fix CAT-V2-ERROR-4097?"
-results = retriever.retrieve(question, top_k=3)
+    def test_non_positive_top_k_is_rejected(self):
+        with self.assertRaises(ValueError):
+            self.retriever.retrieve(
+                "retrieval augmented generation",
+                top_k=0,
+            )
 
-print("\nQUESTION:", question)
-print("\nBM25 RESULTS")
 
-for chunk, score in results:
-    print("-" * 60)
-    print("Source:", chunk.source)
-    print("Chunk:", chunk.chunk_index)
-    print("Score:", round(score, 4))
-    print("Content:", chunk.content)
+if __name__ == "__main__":
+    unittest.main()

@@ -1,3 +1,4 @@
+
 from dataclasses import dataclass
 
 
@@ -7,6 +8,7 @@ class Document:
     title: str
     content: str
     source: str
+    page_number: int | None = None
 
 
 @dataclass
@@ -16,6 +18,7 @@ class Chunk:
     content: str
     source: str
     chunk_index: int
+    page_number: int | None = None
 
 
 @dataclass

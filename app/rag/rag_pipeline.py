@@ -1,4 +1,3 @@
-
 from app.rag.context_builder import ContextBuilder
 from app.rag.generation_service import GenerationService
 from app.rag.models import RAGResponse, RetrievedChunk
@@ -14,6 +13,10 @@ class RAGPipeline:
 
         self.context_builder = ContextBuilder()
         self.generator = GenerationService()
+
+    def refresh_retriever(self) -> None:
+        """Reload the retriever using the latest persisted index."""
+        self.retriever = HybridRetriever()
 
     def answer(
         self,
